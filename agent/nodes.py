@@ -85,20 +85,21 @@ def use_tool(state: AgentState) -> dict:
 
 
 def respond(state: AgentState) -> dict:
-    """Use the LLM to format tool output into a friendly natural language reply.
+    """Use tool output and intent to generate a formatted response."""
 
-    Updates: messages (appends AI response).
-    Next: END.
-    """
-    # TODO: Call Groq LLM with tool_output and conversation context
-    # to generate a human-friendly response.
-    #
-    # Pseudocode:
-    # llm = ChatGroq(model="llama3-70b-8192")
-    # prompt = f"Format this data as a helpful reply: {state['tool_output']}"
-    # response = llm.invoke(state["messages"] + [HumanMessage(content=prompt)])
+    if state["intent"] == "search":
+        content = f"Found these properties:\n{state['tool_output']}"
 
-    reply = AIMessage(content=f"Here are the results: {state['tool_output']}")
+    elif state["intent"] == "details":
+        content = f"Property details:\n{state['tool_output']}"
+
+    elif state["intent"] == "book":
+        content = f"Booking confirmed:\n{state['tool_output']}"
+
+    else:
+        content = str(state["tool_output"])
+
+    reply = AIMessage(content=content)
 
     return {"messages": state["messages"] + [reply]}
 
