@@ -17,40 +17,55 @@ TOOL_MAP: dict = {
 
 
 def parse_input(state: AgentState) -> dict:
-    """Use the LLM to extract intent and parameters from the latest user message.
+    """Extract intent from user message using simple rule-based logic."""
 
-    Updates: intent, tool_name, tool_input.
-    Next: route (conditional edge).
-    """
-    # TODO: Call Groq LLM with a structured prompt that returns JSON like:
-    # {
-    #   "intent": "search",
-    #   "tool_name": "search_available_properties",
-    #   "tool_input": {"location": "Cox's Bazar", "check_in": "...", ...}
-    # }
-    #
-    # Pseudocode:
-    # llm = ChatGroq(model="llama3-70b-8192")
-    # response = llm.invoke(system_prompt + state["messages"])
-    # parsed = json.loads(response.content)
+    # Get latest user message
+    user_message = state["messages"][-1].content.lower()
 
-    parsed: dict = {
-        "intent": "search",
-        "tool_name": "search_available_properties",
-        "tool_input": {
+    # Default values
+    intent = "search"
+    tool_name = "search_available_properties"
+    tool_input = {}
+
+    # --- BOOKING INTENT ---
+    if "book" in user_message or "confirm booking" in user_message:
+        intent = "book"
+        tool_name = "create_booking"
+
+        tool_input = {
+            "listing_id": 1,  # placeholder for skeleton
+            "guest_name": "Test User",
+            "check_in": "2025-01-15",
+            "check_out": "2025-01-17",
+            "guests": 2,
+        }
+
+    # --- DETAILS INTENT ---
+    elif "details" in user_message or "about" in user_message:
+        intent = "details"
+        tool_name = "get_listing_details"
+
+        tool_input = {
+            "listing_id": 1
+        }
+
+    # --- SEARCH INTENT (default) ---
+    else:
+        intent = "search"
+        tool_name = "search_available_properties"
+
+        tool_input = {
             "location": "Cox's Bazar",
             "check_in": "2025-01-15",
             "check_out": "2025-01-17",
             "guests": 2,
-        },
-    }
+        }
 
     return {
-        "intent": parsed["intent"],
-        "tool_name": parsed["tool_name"],
-        "tool_input": parsed["tool_input"],
+        "intent": intent,
+        "tool_name": tool_name,
+        "tool_input": tool_input,
     }
-
 
 def use_tool(state: AgentState) -> dict:
     """Call the selected tool with extracted parameters and store the result.
