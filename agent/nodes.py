@@ -20,21 +20,32 @@ def parse_input(state: AgentState) -> dict:
     """Extract intent from user message using simple rule-based logic."""
 
     # Get latest user message
-    user_message = state["messages"][-1].content.lower()
+    user_message_raw = state["messages"][-1].content
+    user_message = user_message_raw.lower()
 
     # Default values
     intent = "search"
     tool_name = "search_available_properties"
-    tool_input = {}
+    tool_input: dict = {}
 
     # --- BOOKING INTENT ---
     if "book" in user_message or "confirm booking" in user_message:
         intent = "book"
         tool_name = "create_booking"
 
+        # Light but meaningful extraction
+        words = user_message_raw.split()
+
+        # Try to find name after "for"
+        guest_name = "Guest"
+        if "for" in words:
+            idx = words.index("for")
+            if idx + 1 < len(words):
+                guest_name = words[idx + 1]
+
         tool_input = {
-            "listing_id": 1,  # placeholder for skeleton
-            "guest_name": "Test User",
+            "listing_id": 1,
+            "guest_name": guest_name,
             "check_in": "2025-01-15",
             "check_out": "2025-01-17",
             "guests": 2,
@@ -44,16 +55,20 @@ def parse_input(state: AgentState) -> dict:
     elif "details" in user_message or "about" in user_message:
         intent = "details"
         tool_name = "get_listing_details"
-
         tool_input = {
-            "listing_id": 1
+            "listing_id": 1,
         }
+
+    # --- ESCALATE (cannot handle) ---
+    elif "help" in user_message or "human" in user_message or "agent" in user_message:
+        intent = "escalate"
+        tool_name = ""
+        tool_input = {}
 
     # --- SEARCH INTENT (default) ---
     else:
         intent = "search"
         tool_name = "search_available_properties"
-
         tool_input = {
             "location": "Cox's Bazar",
             "check_in": "2025-01-15",
@@ -66,6 +81,7 @@ def parse_input(state: AgentState) -> dict:
         "tool_name": tool_name,
         "tool_input": tool_input,
     }
+
 
 def use_tool(state: AgentState) -> dict:
     """Call the selected tool with extracted parameters and store the result.
